@@ -10,15 +10,34 @@ class FHEServer:
         """Load public context from client"""
         self.context = ts.context_from(serialized_context)
 
+    # Step 1: Create TenSEAL contexts for both CKKS and BFV schemes
+    def create_contexts():
+        """Create and configure TenSEAL contexts for CKKS (floats) and BFV (integers/strings)"""
+    # CKKS context for floating point numbers
+        ckks_context = ts.context(
+        ts.SCHEME_TYPE.CKKS,
+        poly_modulus_degree=8192,
+        coeff_mod_bit_sizes=[60, 40, 40, 60]
+        )
+        ckks_context.global_scale = 2**40
+        ckks_context.generate_galois_keys()
+
+        # BFV context for integers (used for string encoding)
+        bfv_context = ts.context(
+        ts.SCHEME_TYPE.BFV,
+        poly_modulus_degree=4096,
+        plain_modulus=1032193
+        )
+        bfv_context.generate_galois_keys()
+
+        return ckks_context, bfv_context
+
     def search_encrypted(self, encrypted_data: dict) -> dict:
         """Perform search on encrypted data and return encrypted results"""
-        # Deserialize encrypted account number
+        # Deserialize encrypted party id
         enc_partyid = ts.ckks_vector_from(self.context, encrypted_data['encrypted_partyid'])
 
 # Decrypt on server side to search (in real FHE, you'd compare encrypted values)
-# Note: This is a simplified version. True FHE comparison is complex.
-# For demonstration, we're showing the workflow structure
-
 # In practice, server would work on encrypted data without decryption
 # Here we simulate finding the match
         conn = sqlite3.connect('accounts.db')
@@ -128,28 +147,6 @@ def setup_database():
 
 
 #Encrypt the dataframe columns and insert into DB
-# Step 1: Create TenSEAL contexts for both CKKS and BFV schemes
-def create_contexts():
-    """Create and configure TenSEAL contexts for CKKS (floats) and BFV (integers/strings)"""
-# CKKS context for floating point numbers
-    ckks_context = ts.context(
-    ts.SCHEME_TYPE.CKKS,
-    poly_modulus_degree=8192,
-    coeff_mod_bit_sizes=[60, 40, 40, 60]
-    )
-    ckks_context.global_scale = 2**40
-    ckks_context.generate_galois_keys()
-
-    # BFV context for integers (used for string encoding)
-    bfv_context = ts.context(
-    ts.SCHEME_TYPE.BFV,
-    poly_modulus_degree=4096,
-    plain_modulus=1032193
-    )
-    bfv_context.generate_galois_keys()
-
-    return ckks_context, bfv_context
-
 # Step 2: Read CSV file
 #Read accounts.csv to fetch AccountId, PartyId, Region, AccountType
 def load_accounts_csv_to_db(file_path: str):
@@ -160,7 +157,8 @@ def load_accounts_csv_to_db(file_path: str):
     #Pass the dataframe to the server to insert into DB
     df_to_tuples_list = df_accounts_to_tuples(df)
     insert_accounts_to_db(df_to_tuples_list)   
-    encrypt_dataframe(df) 
+    encrypted_data = encrypt_dataframe(df) 
+    save_to_database(encrypted_data, ckks_context, bfv_context,'accounts_encrypted.db')
     return df
 
 
@@ -197,6 +195,8 @@ def load_payments_csv_to_db(file_path: str):
     #Pass the dataframe to the server to insert into DB
     df_to_tuples_list = df_payments_to_tuples(df)
     insert_payments_to_db(df_to_tuples_list)   
+    encrypted_data = encrypt_dataframe(df)
+    save_to_database(encrypted_data, ckks_context, bfv_context,'payments_encrypted.db')
     return df
 
 # Convert payments dataframe into a list of tuples for database insertion
@@ -287,7 +287,7 @@ def encrypt_dataframe(df, ckks_context, bfv_context):
     return encrypted_data
 
 # Step 4: Save to database
-def save_to_database(encrypted_data, ckks_context, bfv_context, db_name='encrypted_data.db'):
+def save_to_database(encrypted_data, ckks_context, bfv_context, db_name):
     """Save encrypted data and contexts to SQLite database"""
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
