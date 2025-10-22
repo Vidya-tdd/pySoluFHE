@@ -40,19 +40,27 @@ class FHEServer:
 # Decrypt on server side to search (in real FHE, you'd compare encrypted values)
 # In practice, server would work on encrypted data without decryption
 # Here we simulate finding the match
-        conn = sqlite3.connect('accounts.db')
+        conn = sqlite3.connect('accounts_encrypted.db')
         cursor = conn.cursor()
 
-# For demo: we'll search based on encrypted search pattern
 # In real FHE, comparison happens on encrypted data
-        cursor.execute('SELECT * FROM accounts where party_id = ?')
+        cursor.execute('SELECT * FROM encrypted_records where column_name = ?, encrypted_value = ?', ('party_id',enc_partyid.serialize()))
         results = cursor.fetchall()
+        if results:
+            encrypted_account = results[0]
+            print(f"Found {len(results)} matching records for encrypted party id.")
+            conn = sqlite3.connect('payments_encrypted.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM encrypted_records where column_name = ?, encrypted_value = ?', ('account_id',encrypted_account.serialize()))
+            results_payments = cursor.fetchall()
+        else:
+            print("No matching records found for encrypted party id.")
         conn.close()
 
 # Find matching record (simplified - in real FHE this would be encrypted comparison)
 # We'll return the first match encrypted
-        if results:
-            result = results[0] # Simplified: return first record
+        if results_payments:
+            result = results_payments[0] # Simplified: return first record
 
 # Encrypt all fields for return
         encrypted_result = {
