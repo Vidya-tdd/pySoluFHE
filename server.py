@@ -1,4 +1,10 @@
 # ==================== SERVER SIDE ====================
+import tenseal as ts
+import sqlite3
+import pickle
+import socket
+import json
+from typing import List, Tuple
 
 class FHEServer:
 
@@ -51,7 +57,7 @@ class FHEServer:
             print(f"Found {len(results)} matching records for encrypted party id.")
             conn = sqlite3.connect('payments_encrypted.db')
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM encrypted_records where column_name = ?, encrypted_value = ?', ('account_id',encrypted_account.serialize()))
+            cursor.execute('SELECT * FROM encrypted_records where column_name = ?, encrypted_value = ?', ('fromAccountId',encrypted_account.serialize()))
             results_payments = cursor.fetchall()
         else:
             print("No matching records found for encrypted party id.")
@@ -74,7 +80,7 @@ class FHEServer:
 
         return encrypted_result
 
-return None
+        return None
 
 def start_server(self, host='localhost', port=9999):
     """Start FHE server"""

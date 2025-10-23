@@ -3,6 +3,7 @@ import sqlite3
 import tenseal as ts
 import socket   
 import pandas as pd  
+import numpy as np
 from client import FHEClient, setup_database, df_to_tuples, insert_parties_to_db
 from server import FHEServer
 # ==================== MAIN EXECUTION ====================
@@ -26,16 +27,16 @@ def run_server():
 # Setup database first
     setup_database()
 
-if len(sys.argv) > 1 and sys.argv[1] == 'server':
+    if len(sys.argv) > 1 and sys.argv[1] == 'server':
 # Run as server
-    run_server()
-else:
+        run_server()
+    else:
 # Run as client
-    print("Starting client (run with 'python script.py server' to start server)")
-    print("Make sure server is running first!")
-    import time
-    time.sleep(2)
-    run_client_example()
+        print("Starting client (run with 'python script.py server' to start server)")
+        print("Make sure server is running first!")
+        import time
+        time.sleep(2)
+        run_client_example()
 
 #Read parties.csv to fetch PartyId, Name
 # Step 2: Read CSV file
